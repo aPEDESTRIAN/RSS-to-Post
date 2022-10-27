@@ -10,9 +10,6 @@ class RSS_to_Post
 		// Register admin hooks?
 		if (is_admin())
 		{
-			require_once plugin_dir_path(dirname(__FILE__ )) .'includes/class-rss-to-post-admin.php';
-			$plugin_admin = new RSS_to_Post_Admin();
-
 			add_action('admin_menu',	[$this, 'add_options_page']);
 			add_action('admin_init',	[$this, 'options_page_init']);
 		}
