@@ -1,18 +1,9 @@
 <?php defined('ABSPATH') || exit;
 
-/**
- * The plugin bootstrap file
- *
- * Plugin Name:			RSS to Post
- * Plugin URI:			https://github.com/apedestrian/rss-to-post
- * Description:			Uses either a white or black list to automatically add posts that redirect to their origin
- * Version:				1.0.0
- * Author:				apedestrian
- * Author URI:			https://github.com/apedestrian
- * License:				GPL-2.0+
- * License URI:			http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain:			rss-to-post
- */
+/*
+	Plugin Name: RSS to Post
+	Author: Alex
+*/
 
 function rss_to_post_activation()
 {

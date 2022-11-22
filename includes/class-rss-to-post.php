@@ -5,8 +5,6 @@ class RSS_to_Post
 	// Defines the core functionality of the plugin.
 	public function __construct()
 	{
-		require_once plugin_dir_path(dirname(__FILE__ )) .'includes/class-wp-download-remote-image.php';
-
 		// Register admin hooks?
 		if (is_admin())
 		{
@@ -18,6 +16,9 @@ class RSS_to_Post
 		add_action('template_redirect',			[$this, 'rss_post_redirect']);
 		add_filter('post_link',					[$this, 'rss_post_link'], 10, 3);
 		add_action('rss_to_post_check_feeds',	[$this, 'rss_to_post_check_feeds_callback']);
+
+		// Shortcodes
+		add_shortcode('rss_post_origin_link', [$this, 'rss_post_origin_link']);
 	}
 
 	#region ====================[ Theme Hooks ]====================
@@ -45,11 +46,17 @@ class RSS_to_Post
 	// Checks all the feeds added in settings and adds any new posts that satisfy the black/white list
 	public function rss_to_post_check_feeds_callback()
 	{
+		require_once plugin_dir_path(dirname(__FILE__ )) .'includes/class-wp-download-remote-image.php';
+
 		global $wpdb;
 		$feeds = json_decode(get_option('rss_to_post_settings', '[]'));
 	
 		foreach ($feeds as $feed)
 		{
+			if ($feed->url == '') {
+				continue;
+			}
+			
 			$rss = simplexml_load_string(file_get_contents($feed->url));
 			$mode = $feed->mode;
 			
@@ -89,11 +96,21 @@ class RSS_to_Post
 							
 									if ($key == 'content' && property_exists($attributes, 'url'))
 									{
-										$download_remote_image = new WP_DownloadRemoteImage((string) $attributes->url);
-	
-										if ($attachment_id = $download_remote_image->download())
+										$url = $attributes->url;
+										
+										// Do we already have this image? If so, just reuse it
+										if ($attachment_id = $this->attachment_exists($url))
 										{
 											set_post_thumbnail($post_id, $attachment_id);
+										}
+										else
+										{
+											$download_remote_image = new WP_DownloadRemoteImage((string) $url);
+	
+											if ($attachment_id = $download_remote_image->download())
+											{
+												set_post_thumbnail($post_id, $attachment_id);
+											}
 										}
 									}
 								}
@@ -106,6 +123,38 @@ class RSS_to_Post
 				}
 			}
 		}
+	}
+
+	public function rss_post_origin_link()
+	{
+		$origin_url = parse_url(get_the_permalink(), PHP_URL_HOST);
+		return '<a target="_blank" href="https://'.$origin_url.'">'.$origin_url.'</a>';
+	}
+
+	private function attachment_exists($url)
+	{
+		// Remove GET params if we have any
+		if (strpos($url, '?') !== false)
+		{
+			$t = explode('?',$url);
+			$url = $t[0];            
+		}
+
+		$pathinfo = pathinfo($url);
+		$post_title = trim($pathinfo['filename']);
+
+		$get_attachment = new WP_Query(array(
+			'posts_per_page' => 1,
+			'post_type' => 'attachment',
+			'post_title' => $post_title,
+		));
+
+		if (!$get_attachment || !isset($get_attachment->posts, $get_attachment->posts[0]))
+		{
+			return false;
+		}
+
+		return $get_attachment->posts[0]->ID;
 	}
 
 	#endregion =================[ Theme Hooks ]====================
